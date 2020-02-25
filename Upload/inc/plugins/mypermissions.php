@@ -143,14 +143,28 @@ function mypermissions_nopermission()
 	foreach ($permissions as $rule)
 	{
 		if (isset($current_page) && $current_page != '')
+		{
 			if($rule['file'] != $current_page)
 				continue;
+		}
 		else
+		{
 			if($rule['file'] != basename(trim($_SERVER['SCRIPT_NAME'])))
 				continue;
-			
-		if (empty($rule) || ($rule['field'] != '' && (!isset($mybb->input[$rule['field']]) || trim($mybb->input[$rule['field']]) != trim($rule['value']))))
+		}
+
+		if (empty($rule))
+		{
 			continue;
+		}
+
+		if (!empty($rule['field']))
+		{
+			if(!(isset($mybb->input[$rule['field']]) && ($mybb->request_method == 'get' && isset($_GET[$rule['field']]) || $mybb->request_method == 'post' && $_POST[$rule['field']])))
+				continue;
+			if(!empty($rule['value']) && trim($mybb->get_input($rule['field'])) != trim($rule['value']))
+				continue;
+		}
 			
 		if (mypermissions_check_permissions($rule['usergroups']))
 		{
@@ -278,7 +292,7 @@ function mypermissions_admin()
 					$db->insert_query('mypermissions_actions', $insert_query);
 					
 					// cache all rules again
-					$rules = '';
+					$rules = array();
 					$query = $db->simple_select('mypermissions_actions', '*', '', array('order_by' => 'file', 'order_dir' => 'asc'));
 					while ($rule = $db->fetch_array($query))
 					{
@@ -330,7 +344,7 @@ function mypermissions_admin()
 					$db->update_query('mypermissions_actions', $update_query, 'aid=\''.$aid.'\'');
 					
 					// cache all rules again
-					$rules = '';
+					$rules = array();
 					$query = $db->simple_select('mypermissions_actions', '*', '', array('order_by' => 'file', 'order_dir' => 'asc'));
 					while ($rule = $db->fetch_array($query))
 					{
@@ -365,7 +379,7 @@ function mypermissions_admin()
 				$db->delete_query('mypermissions_actions', "aid = $aid");
 				
 				// cache all rules again
-				$rules = '';
+				$rules = array();
 				$query = $db->simple_select('mypermissions_actions', '*', '', array('order_by' => 'file', 'order_dir' => 'asc'));
 				while ($rule = $db->fetch_array($query))
 				{
@@ -479,8 +493,8 @@ function mypermissions_admin()
 			$form_container->output_row($lang->mypermissions_addrule_usergroups."<em>*</em>", $lang->mypermissions_addrule_usergroups_desc, $form->generate_select_box('usergroups[]', $options, '', array('id' => 'usergroups', 'multiple' => true, 'size' => 5)), 'groups');
 			
 			$form_container->end();
-			
-			$buttons = "";
+
+			$buttons = array();
 			$buttons[] = $form->generate_submit_button($lang->mypermissions_submit);
 			$buttons[] = $form->generate_reset_button($lang->mypermissions_reset);
 			$form->output_submit_wrapper($buttons);
@@ -515,8 +529,8 @@ function mypermissions_admin()
 			$form_container->output_row($lang->mypermissions_editrule_usergroups."<em>*</em>", $lang->mypermissions_editrule_usergroups_desc, $form->generate_select_box('usergroups[]', $options, explode(',',$rule['usergroups']), array('id' => 'usergroups', 'multiple' => true, 'size' => 5)), 'groups');
 			
 			$form_container->end();
-			
-			$buttons = "";
+
+			$buttons = array();
 			$buttons[] = $form->generate_submit_button($lang->mypermissions_submit);
 			$buttons[] = $form->generate_reset_button($lang->mypermissions_reset);
 			$form->output_submit_wrapper($buttons);
@@ -527,5 +541,3 @@ function mypermissions_admin()
 		exit;
 	}
 }
-
-?>
